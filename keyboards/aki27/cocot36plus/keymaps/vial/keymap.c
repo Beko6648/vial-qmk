@@ -19,6 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include "quantum.h"
 
+// 20241209 JIS切り替えのため追加
+#include "twpair_on_jis.h"
+
 
 #define MS_BTN1 KC_MS_BTN1
 #define MS_BTN2 KC_MS_BTN2
@@ -106,6 +109,14 @@ bool is_mouse_record_kb(uint16_t keycode, keyrecord_t* record) {
     return is_mouse_record_user(keycode, record);
 }
 
+// 20241209 JIS対応のため追加
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (cocot_config.jis){
+        return twpair_on_jis(keycode, record);
+    }
+
+    return true;
+}
 
 
 #ifdef RGB_MATRIX_ENABLE
@@ -114,7 +125,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     int is_layer = get_highest_layer(layer_state|default_layer_state);  
     HSV hsv = {0, 255, rgblight_get_val()};
     if (is_layer == 1) {
-      hsv.h = 11; //CORAL
+      //hsv.h = 11; //CORAL
+      hsv.h = 128; //CYAN 20241209 色変更
     } else if (is_layer == 2)  {
       hsv.h = 85; //GREEN
     } else if (is_layer == 3)  {
@@ -128,7 +140,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     } else if (is_layer == 7)  {
       hsv.h = 224;
     } else {
-      hsv.h = 128; //CYAN
+      //hsv.h = 128; //CYAN
+      hsv.h = 11; //CORAL 20241209 色変更
     }
     RGB rgb = hsv_to_rgb(hsv);
  

@@ -28,6 +28,9 @@ typedef union {
         bool scrl_inv;
         bool scrl_mode;
         report_mouse_t last_mouse;
+
+        // 20241209 JIS切り替えのため追加
+        bool jis;
     };
 } cocot_config_t;
 
@@ -43,7 +46,11 @@ enum cocot_keycodes {
     SCRL_MO,
     SCRL_TO,
     SCRL_IN,
-    AM_TOG
+    AM_TOG,
+
+    // 20241209 JIS切り替えのため追加
+    SET_US_MODE,
+    SET_JIS_MODE
 };
 
 #define CPI_SW QK_KB_0
@@ -54,6 +61,10 @@ enum cocot_keycodes {
 #define SCRL_TO QK_KB_5
 #define SCRL_IN QK_KB_6
 #define AM_TOG QK_KB_7
+
+// 20241209 JIS切り替えのため追加
+#define SET_US_MODE QK_KB_8
+#define SET_JIS_MODE QK_KB_9
 
 
 bool encoder_update_user(uint8_t index, bool clockwise);

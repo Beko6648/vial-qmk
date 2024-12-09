@@ -26,7 +26,10 @@ extern const pointing_device_driver_t pointing_device_driver;
 
 // Invert vertical scroll direction
 #ifndef COCOT_SCROLL_INV_DEFAULT
-#    define COCOT_SCROLL_INV_DEFAULT true
+
+// 20241210 デフォルトのスクロール方向を変更
+//#    define COCOT_SCROLL_INV_DEFAULT true
+#    define COCOT_SCROLL_INV_DEFAULT false
 #endif
 
 #ifndef COCOT_CPI_OPTIONS
@@ -241,6 +244,20 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
         { cocot_config.scrl_mode ^= 1; }
     }
 
+    // 20241209 JIS切り替えのため追加
+    if (keycode == SET_US_MODE) {
+        if ( cocot_config.jis == true){
+            cocot_config.jis = false;
+        }
+    }
+
+    // 20241209 JIS切り替えのため追加
+    if (keycode == SET_JIS_MODE) {
+        if ( cocot_config.jis == false){
+            cocot_config.jis = true;
+        }
+    }
+
     return true;
 }
 /*
@@ -308,6 +325,10 @@ void eeconfig_init_kb(void) {
     cocot_config.scrl_inv = COCOT_SCROLL_INV_DEFAULT;
     cocot_config.scrl_mode = false;
     cocot_config.auto_mouse = COCOT_AUTO_MOUSE_MODE;
+
+    // 20241209 JIS切り替えのため追加
+    cocot_config.jis = false;
+
     eeconfig_update_kb(cocot_config.raw);
     eeconfig_init_user();
 }

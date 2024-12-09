@@ -1,2 +1,5 @@
 POINTING_DEVICE_ENABLE = yes
 POINTING_DEVICE_DRIVER = pmw3360
+
+# 20241209 JIS切り替えのため追加
+SRC +=  twpair_on_jis.c
