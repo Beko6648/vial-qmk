@@ -21,6 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include "quantum.h"
 #include "twpair_on_jis.h"
+#include "dynamic_keymap.h"
+#include "vial.h"
 
 #define MIDI_INITIAL_VELOCITY 117
 
@@ -460,6 +462,48 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
     return mouse_report;
 }
 
+
+// ----------------------------------------------------------------
+// Vial デフォルト設定: コンボ・タップダンスのデフォルト値
+// EEPROMが未初期化（初回書き込み）またはリセット時に適用される。
+// .vilをロードすれば上書きされるため、通常運用には影響しない。
+// ----------------------------------------------------------------
+static void write_vial_defaults(void) {
+    // コンボ (.vil combo設定に対応)
+    static const vial_combo_entry_t default_combos[] = {
+        {{TD(TD_Q_ESC), KC_W,    KC_NO, KC_NO}, KC_TAB    },  // TD(Q)+W     → Tab
+        {{TD(TD_Q_ESC), KC_SLSH, KC_NO, KC_NO}, KC_TAB    },  // TD(Q)+/     → Tab
+        {{TD(TD_Q_ESC), KC_W,    KC_E,  KC_NO}, S(KC_TAB) },  // TD(Q)+W+E   → S-Tab
+        {{TD(TD_Q_ESC), KC_SLSH, KC_U,  KC_NO}, S(KC_TAB) },  // TD(Q)+/+U   → S-Tab
+        {{KC_Q,         KC_W,    KC_NO, KC_NO}, KC_TAB    },  // Q+W         → Tab  (Layer2)
+        {{KC_Q,         KC_W,    KC_E,  KC_NO}, KC_ESC    },  // Q+W+E       → Esc  (Layer2)
+    };
+    const size_t n_defaults = sizeof(default_combos) / sizeof(default_combos[0]);
+    for (size_t i = 0; i < VIAL_COMBO_ENTRIES; ++i) {
+        vial_combo_entry_t e = { 0 };
+        if (i < n_defaults) e = default_combos[i];
+        dynamic_keymap_set_combo(i, &e);
+    }
+    vial_reload_combos();
+
+    // タップダンス TD(0): タップ=KC_Q / ダブルタップ=KC_ESC (.vil tap_dance[0]に対応)
+    vial_tap_dance_entry_t td0 = { KC_Q, KC_NO, KC_ESC, KC_NO, 200 };
+    dynamic_keymap_set_tap_dance(0, &td0);
+}
+
+// EEPROMリセット時（Vial GUIのリセットボタン等）に呼ばれる
+void dynamic_keymap_reset_user(void) {
+    write_vial_defaults();
+}
+
+// 初回書き込み後の初起動時（EEPROMが未初期化=0xFF）に呼ばれる
+void keyboard_post_init_user(void) {
+    vial_combo_entry_t entry;
+    dynamic_keymap_get_combo(0, &entry);
+    if (entry.input[0] == 0xFFFF) {  // blank flash = 未初期化
+        write_vial_defaults();
+    }
+}
 
 // ----------------------------------------------------------------
 // Housekeeping: ジグラータイマー管理（メインループ毎に呼ばれる）
