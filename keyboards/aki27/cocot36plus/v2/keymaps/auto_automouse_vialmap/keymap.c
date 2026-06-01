@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Generated from Vial export: 20260422.vil
+// Generated from Vial export: 20260601_numlock追加.vil
 
 #include QMK_KEYBOARD_H
 #include <stdio.h>
@@ -126,11 +126,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                        LALT_T(KC_INT5), LT(5, KC_SPC), LSFT_T(KC_APP),    LT(6, KC_ENT),  LT(5, KC_BSPC), RALT_T(KC_INT4)
     ),
 
-    // Layer 2: 標準 QWERTY (シンプル配列)
+    // Layer 2: 標準 QWERTY (シンプル配列、右手にカーソルキー)
     [2] = LAYOUT(
         KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,              KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,
-        KC_A,    KC_S,    KC_D,    KC_F,    KC_G,              KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN,
-        KC_LSFT, KC_X,    KC_C,    KC_V,    KC_B,              KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,
+        KC_A,    KC_S,    KC_D,    KC_F,    KC_G,              KC_H,    KC_J,    KC_K,    KC_UP,   KC_SCLN,
+        KC_LSFT, KC_X,    KC_C,    KC_V,    KC_B,              KC_N,    KC_M,    KC_LEFT, KC_DOWN, KC_RGHT,
                           KC_LCTL, KC_SPC,  KC_LSFT,           KC_ENT,  MO(5),   KC_BSPC
     ),
 
@@ -158,20 +158,20 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                 KC_INS,     MO(7),      KC_LSFT,        KC_ESC,     MO(7),      KC_DEL
     ),
 
-    // Layer 6: 数字・テンキー・ファンクション (LT6ホールド)
+    // Layer 6: テンキー・ファンクション (LT6ホールド、NumLock対応)
     [6] = LAYOUT(
-        KC_SLSH,        LSFT(KC_8), KC_MINS,    LSFT(KC_EQL), KC_EQL,         LSFT(KC_1), KC_7,    KC_8,    KC_9,    XXXXXXX,
-        LCTL_T(KC_F1),  KC_F2,      KC_F3,      KC_F4,        KC_F5,          KC_DOT,     KC_4,    KC_5,    KC_6,    RCTL_T(KC_F11),
-        LSFT_T(KC_F6),  KC_F7,      KC_F8,      KC_F9,        KC_F10,         KC_0,       KC_1,    KC_2,    KC_3,    RSFT_T(KC_F12),
-                                    LALT_T(KC_F13), XXXXXXX,  XXXXXXX,        XXXXXXX,    XXXXXXX, RALT_T(KC_F14)
+        KC_SLSH,        LSFT(KC_8), KC_MINS,    LSFT(KC_EQL), KC_EQL,         LSFT(KC_1), KC_KP_7, KC_KP_8, KC_KP_9, KC_NUM_LOCK,
+        LCTL_T(KC_F1),  KC_F2,      KC_F3,      KC_F4,        KC_F5,          KC_DOT,     KC_KP_4, KC_KP_5, KC_KP_6, RCTL_T(KC_F11),
+        LSFT_T(KC_F6),  KC_F7,      KC_F8,      KC_F9,        KC_F10,         KC_KP_0,    KC_KP_1, KC_KP_2, KC_KP_3, RSFT_T(KC_F12),
+                                    LALT_T(KC_F13), XXXXXXX,  XXXXXXX,        KC_NUM_LOCK, XXXXXXX, RALT_T(KC_F14)
     ),
 
     // Layer 7: システム設定 (MO(7)で遷移)
     [7] = LAYOUT(
-        DF(0),       ROT_L15,  ROT_R15,  SCRL_SW,  CPI_SW,            XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, DF(1),
-        DF(2),       RGB_HUI,  RGB_VAI,  RGB_MOD,  RGB_TOG,           XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
-        SET_US_MODE, RGB_HUD,  RGB_VAD,  RGB_RMOD, QK_BOOT,           XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, SET_JIS_MODE,
-                               XXXXXXX,  XXXXXXX,  XXXXXXX,           XXXXXXX, XXXXXXX, XXXXXXX
+        DF(0),       ROT_L15,  ROT_R15,  SCRL_SW,  CPI_SW,            XXXXXXX,    XXXXXXX, XXXXXXX, XXXXXXX, DF(1),
+        DF(2),       RGB_HUI,  RGB_VAI,  RGB_MOD,  RGB_TOG,           XXXXXXX,    XXXXXXX, XXXXXXX, XXXXXXX, JIGGLE_TOG,
+        SET_US_MODE, RGB_HUD,  RGB_VAD,  RGB_RMOD, QK_BOOT,           XXXXXXX,    XXXXXXX, XXXXXXX, XXXXXXX, SET_JIS_MODE,
+                               XXXXXXX,  XXXXXXX,  XXXXXXX,           XXXXXXX,    XXXXXXX, XXXXXXX
     ),
 };
 
