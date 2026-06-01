@@ -509,6 +509,7 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
 combo_t key_combos[VIAL_COMBO_ENTRIES] = { };
 uint16_t key_combos_keys[VIAL_COMBO_ENTRIES][5];
 
+void vial_reload_combos(void);
 static void reload_combo(void) {
     /* initialize with all keys = COMBO_END */
     memset(key_combos_keys, 0, sizeof(key_combos_keys));
@@ -527,6 +528,8 @@ static void reload_combo(void) {
     }
 }
 #endif
+
+void vial_reload_combos(void) { reload_combo(); }
 
 #ifdef VIAL_TAP_DANCE_ENABLE
 void process_tap_dance_action_on_dance_finished(tap_dance_action_t *action);

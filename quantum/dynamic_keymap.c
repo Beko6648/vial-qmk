@@ -316,7 +316,11 @@ void dynamic_keymap_reset(void) {
     /* re-lock the keyboard */
     vial_unlocked = vial_unlocked_prev;
 #endif
+
+    dynamic_keymap_reset_user();
 }
+
+__attribute__((weak)) void dynamic_keymap_reset_user(void) {}
 
 void dynamic_keymap_get_buffer(uint16_t offset, uint16_t size, uint8_t *data) {
     uint16_t dynamic_keymap_eeprom_size = DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_ROWS * MATRIX_COLS * 2;
