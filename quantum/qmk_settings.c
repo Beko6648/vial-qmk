@@ -181,7 +181,7 @@ void qmk_settings_reset(void) {
 
     QS.combo_term = COMBO_TERM;
     QS.tapping_term = TAPPING_TERM;
-    QS.tapping = 0;
+    QS.tapping = 2;  // bit1=1: HOLD_ON_OTHER_KEY_PRESS を無効化（.vil ID=8 の実績値に合わせる）
     QS.tap_code_delay = TAP_CODE_DELAY;
     QS.tap_hold_caps_delay = TAP_HOLD_CAPS_DELAY;
     QS.tapping_toggle = TAPPING_TOGGLE;
