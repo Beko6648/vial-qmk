@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Generated from Vial export: 20260601_numlock追加.vil
+// Generated from Vial export: 20260511_テンキー数字への対応_ゲームレイヤに矢印追加.vil
 
 #include QMK_KEYBOARD_H
 #include <stdio.h>
@@ -163,7 +163,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_SLSH,        LSFT(KC_8), KC_MINS,    LSFT(KC_EQL), KC_EQL,         LSFT(KC_1), KC_KP_7, KC_KP_8, KC_KP_9, KC_NUM_LOCK,
         LCTL_T(KC_F1),  KC_F2,      KC_F3,      KC_F4,        KC_F5,          KC_DOT,     KC_KP_4, KC_KP_5, KC_KP_6, RCTL_T(KC_F11),
         LSFT_T(KC_F6),  KC_F7,      KC_F8,      KC_F9,        KC_F10,         KC_KP_0,    KC_KP_1, KC_KP_2, KC_KP_3, RSFT_T(KC_F12),
-                                    LALT_T(KC_F13), XXXXXXX,  XXXXXXX,        KC_NUM_LOCK, XXXXXXX, RALT_T(KC_F14)
+                                    LALT_T(KC_F13), XXXXXXX,  XXXXXXX,        XXXXXXX,    XXXXXXX, RALT_T(KC_F14)
     ),
 
     // Layer 7: システム設定 (MO(7)で遷移)
