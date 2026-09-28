@@ -596,6 +596,12 @@ void housekeeping_task_user(void) {
 
     // カーソル移動フラグをセット
     if (timer_elapsed(jiggle_move_timer) > JIGGLE_INTERVAL) {
+        // 【一時変更 2026-09-28】入力中スキップを無効化。
+        // 症状: ジグラーON後、1回目は60秒で発火するが2回目以降が発火しない。
+        //   入力中スキップ（下記の入力判定）が恒久的に成立している疑いがあるため、
+        //   切り分けのため判定を外して「以前の挙動」（毎60秒必ず発火）に戻す。
+        //   復活させる場合は下の #if 0 を #if 1 にする。
+#if 0
         // 入力中スキップ: 直近JIGGLE_IDLE_MS以内にキー入力 or 本物のトラックボール入力があれば、
         // 今回はジグルせずタイマーも進めない（＝入力が止まれば即座にジグル再開できる）。
         // ・キー入力   : last_matrix_activity_elapsed()（ジグルは matrix 活動を更新しない）
@@ -604,6 +610,7 @@ void housekeeping_task_user(void) {
             timer_elapsed(jiggle_idle_timer) < JIGGLE_IDLE_MS) {
             return;
         }
+#endif
         jiggle_move_timer = timer_read();
         jiggle_pending    = true;
     }
