@@ -48,6 +48,7 @@ static bool    jiggle_led_on     = false;
 static bool    jiggle_pending    = false; // pointing_device_task_userへの移動フラグ
 static int8_t  jiggle_dir        = 1;    // 移動方向 (+1 / -1)
 static uint16_t jiggle_idle_timer = 0;   // 最後の「本物の」トラックボール入力時刻（ジグル注入前）
+static bool    jiggle_injected   = false; // このフレームの移動がジグル由来か（AML起動を防ぐ）
 
 
 // ----------------------------------------------------------------
@@ -364,6 +365,9 @@ bool is_clickable_mode(void) {
 // ----------------------------------------------------------------
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
 
+    // ジグラー: このフレームのフラグを先頭でクリア（前フレームの持ち越し防止）
+    jiggle_injected = false;
+
     // ジグラー: 「本物の」トラックボール入力時刻を、ジグル注入より前に記録する。
     // （注入後の値を見ると自分の移動を入力と誤認するため、必ず注入前に判定する）
     if (mouse_report.x != 0 || mouse_report.y != 0) {
@@ -376,6 +380,7 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         mouse_report.x  += JIGGLE_AMPLITUDE * jiggle_dir;
         mouse_report.y  += JIGGLE_AMPLITUDE * jiggle_dir;
         jiggle_dir       = -jiggle_dir;
+        jiggle_injected  = true;   // この移動はジグル由来（AMLに操作と誤認させない）
     }
 
     int16_t current_x = mouse_report.x;
@@ -476,6 +481,18 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
     mouse_report.v = current_v;
 
     return mouse_report;
+}
+
+
+// ----------------------------------------------------------------
+// Auto mouse activation の上書き（AML 起動条件）
+// QMK標準は x/y/h/v/buttons の非ゼロで起動するが、ジグル注入の移動を
+// 操作と誤認してマウスレイヤーに入ってしまうため、ジグル由来のフレームでは
+// 起動しないようにする。（weak 関数を keymap で置換）
+// ----------------------------------------------------------------
+bool auto_mouse_activation(report_mouse_t mouse_report) {
+    if (jiggle_injected) return false;   // ジグル由来の移動では起動しない
+    return mouse_report.x != 0 || mouse_report.y != 0 || mouse_report.h != 0 || mouse_report.v != 0 || mouse_report.buttons;
 }
 
 
