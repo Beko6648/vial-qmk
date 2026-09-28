@@ -497,6 +497,56 @@ bool auto_mouse_activation(report_mouse_t mouse_report) {
 
 
 // ----------------------------------------------------------------
+// マウス関連以外のキー押下でマウスレイヤー(4)を即離脱
+//
+// pre_process_record_user はキーコード解決の直後・process_record の前に呼ばれる。
+// ここで layer_off すると、続く store_or_get_action() が
+// layer_switch_get_layer() を呼び直すため、押したキー自体は下位レイヤーで
+// 再解決される（＝抜けつつ、押した文字は正しく入力される）。
+//
+// 除外キー（離脱させない）:
+//   ・マウス系キー（ボタン/移動/ホイール）… クリック・ドラッグ操作用
+//   ・SCRL_MO などのスクロール系           … スクロール操作用
+//   ・KC_LCTL / KC_LSFT などの素の修飾キー … クリック＋ドラッグ選択用
+//   ※ これらを除外しないと「マウスボタンでクリックできない」等の退行になる。
+//   ※ レイヤータップ(LT)・mod-tap(MT)は除外しない＝押した瞬間に離脱する。
+// ----------------------------------------------------------------
+static bool is_mouse_layer_exempt_keycode(uint16_t keycode) {
+    // マウス系キー（BTN1-8 / カーソル移動 / ホイール）
+    if (IS_MOUSEKEY_BUTTON(keycode) || IS_MOUSEKEY_MOVE(keycode) || IS_MOUSEKEY_WHEEL(keycode)) {
+        return true;
+    }
+    // 素の修飾キー（クリック＋ドラッグ選択のため）
+    if (keycode >= KC_LEFT_CTRL && keycode <= KC_RIGHT_GUI) {
+        return true;
+    }
+    if (keycode >= QK_MODS && keycode <= QK_MODS_MAX) {
+        return true;
+    }
+    // スクロール・マウス設定系のカスタムキー
+    switch (keycode) {
+        case SCRL_MO:
+        case SCRL_TO:
+        case SCRL_IN:
+        case SCRL_SW:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed && layer_state_is(click_layer) &&
+        !is_mouse_layer_exempt_keycode(keycode)) {
+        // QMK標準と自前ステートマシンの両方を落とす（片方だけだと他方が再点灯させる）
+        auto_mouse_reset_trigger(true);   // layer_off(4) + status/timerクリア + delay再始動
+        disable_click_layer();            // state=NONE + layer_off(4) + スクロールカウンタ初期化
+    }
+    return true;
+}
+
+
+// ----------------------------------------------------------------
 // Vial デフォルト設定: コンボ・タップダンスのデフォルト値
 // EEPROMが未初期化（初回書き込み）またはリセット時に適用される。
 // .vilをロードすれば上書きされるため、通常運用には影響しない。
