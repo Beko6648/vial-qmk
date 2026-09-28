@@ -42,12 +42,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define JIGGLE_IDLE_MS   10000 // 直近この時間内にキー/トラックボール入力があればジグルをスキップ (ms)
 
 static bool    jiggle_active     = false;
-static uint16_t jiggle_move_timer  = 0;  // 次の移動までのタイマー
-static uint16_t jiggle_blink_timer = 0;  // LED点滅タイマー
+// 【型に注意】自前タイマーは uint32_t / timer_read32 / timer_elapsed32 で統一する。
+// timer_read()/timer_elapsed() は 16bit で 65535ms（65.5秒）ごとに一周するため、
+// 初期値 0 のまま放置すると「起動からの経過 mod 65.5秒」を経過時間と誤認し、
+// 周期的に偽陽性を出す（実機例: ジグラーが「1回目は発火するが2回目以降しない」）。
+static uint32_t jiggle_move_timer  = 0;  // 次の移動までのタイマー
+static uint32_t jiggle_blink_timer = 0;  // LED点滅タイマー
 static bool    jiggle_led_on     = false;
 static bool    jiggle_pending    = false; // pointing_device_task_userへの移動フラグ
 static int8_t  jiggle_dir        = 1;    // 移動方向 (+1 / -1)
-static uint16_t jiggle_idle_timer = 0;   // 最後の「本物の」トラックボール入力時刻（ジグル注入前）
+static uint32_t jiggle_idle_timer = 0;   // 最後の「本物の」トラックボール入力時刻（ジグル注入前）
 static bool    jiggle_injected   = false; // このフレームの移動がジグル由来か（AML起動を防ぐ）
 
 
@@ -263,8 +267,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 jiggle_active = !jiggle_active;
                 if (jiggle_active) {
                     // ジグラー開始: タイマーリセット・オートマウス無効化
-                    jiggle_move_timer  = timer_read();
-                    jiggle_blink_timer = timer_read();
+                    jiggle_move_timer  = timer_read32();
+                    jiggle_blink_timer = timer_read32();
                     jiggle_led_on      = true;
                     jiggle_dir         = 1;
                     disable_click_layer();
@@ -371,7 +375,7 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
     // ジグラー: 「本物の」トラックボール入力時刻を、ジグル注入より前に記録する。
     // （注入後の値を見ると自分の移動を入力と誤認するため、必ず注入前に判定する）
     if (mouse_report.x != 0 || mouse_report.y != 0) {
-        jiggle_idle_timer = timer_read();
+        jiggle_idle_timer = timer_read32();
     }
 
     // ジグラー: housekeeping_task_userからのフラグを受けてX移動を注入
@@ -595,29 +599,24 @@ void housekeeping_task_user(void) {
     if (!jiggle_active) return;
 
     // カーソル移動フラグをセット
-    if (timer_elapsed(jiggle_move_timer) > JIGGLE_INTERVAL) {
-        // 【一時変更 2026-09-28】入力中スキップを無効化。
-        // 症状: ジグラーON後、1回目は60秒で発火するが2回目以降が発火しない。
-        //   入力中スキップ（下記の入力判定）が恒久的に成立している疑いがあるため、
-        //   切り分けのため判定を外して「以前の挙動」（毎60秒必ず発火）に戻す。
-        //   復活させる場合は下の #if 0 を #if 1 にする。
-#if 0
+    if (timer_elapsed32(jiggle_move_timer) > JIGGLE_INTERVAL) {
         // 入力中スキップ: 直近JIGGLE_IDLE_MS以内にキー入力 or 本物のトラックボール入力があれば、
         // 今回はジグルせずタイマーも進めない（＝入力が止まれば即座にジグル再開できる）。
-        // ・キー入力   : last_matrix_activity_elapsed()（ジグルは matrix 活動を更新しない）
+        // ・キー入力   : last_matrix_activity_elapsed()（32bit。ジグルは matrix 活動を更新しない）
         // ・トラックボール: jiggle_idle_timer（pointing_device_task_user で注入前に記録した値）
+        // 【重要】判定は32bit系で統一。16bit だと 65.5秒周期の偽陽性で
+        //   「1回目は発火するが2回目以降しない」症状が出る（2026-09-28 実機確認済み）。
         if (last_matrix_activity_elapsed() < JIGGLE_IDLE_MS ||
-            timer_elapsed(jiggle_idle_timer) < JIGGLE_IDLE_MS) {
+            timer_elapsed32(jiggle_idle_timer) < JIGGLE_IDLE_MS) {
             return;
         }
-#endif
-        jiggle_move_timer = timer_read();
+        jiggle_move_timer = timer_read32();
         jiggle_pending    = true;
     }
 
     // LED点滅トグル
-    if (timer_elapsed(jiggle_blink_timer) > JIGGLE_BLINK_MS) {
-        jiggle_blink_timer = timer_read();
+    if (timer_elapsed32(jiggle_blink_timer) > JIGGLE_BLINK_MS) {
+        jiggle_blink_timer = timer_read32();
         jiggle_led_on      = !jiggle_led_on;
     }
 }
