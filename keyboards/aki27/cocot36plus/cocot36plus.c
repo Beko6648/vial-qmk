@@ -241,6 +241,17 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
         { cocot_config.scrl_mode ^= 1; }
     }
 
+    // JIS/US配列切替 (EEPROMに永続化)
+    if (keycode == SET_US_MODE && record->event.pressed) {
+        cocot_config.jis = false;
+        eeconfig_update_kb(cocot_config.raw);
+    }
+
+    if (keycode == SET_JIS_MODE && record->event.pressed) {
+        cocot_config.jis = true;
+        eeconfig_update_kb(cocot_config.raw);
+    }
+
     return true;
 }
 /*
@@ -308,6 +319,7 @@ void eeconfig_init_kb(void) {
     cocot_config.scrl_inv = COCOT_SCROLL_INV_DEFAULT;
     cocot_config.scrl_mode = false;
     cocot_config.auto_mouse = COCOT_AUTO_MOUSE_MODE;
+    cocot_config.jis = false; // 初期値はUS配列
     eeconfig_update_kb(cocot_config.raw);
     eeconfig_init_user();
 }

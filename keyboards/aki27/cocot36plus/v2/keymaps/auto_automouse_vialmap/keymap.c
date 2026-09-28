@@ -39,6 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define JIGGLE_INTERVAL 60000  // カーソル移動間隔 (ms)。変更可。
 #define JIGGLE_AMPLITUDE 20    // 移動量 (pixel)。4px以下はWindows加速で無視されTeams離席になる
 #define JIGGLE_BLINK_MS  500   // LED点滅間隔 (ms)
+#define JIGGLE_IDLE_MS   10000 // 直近この時間内にキー/トラックボール入力があればジグルをスキップ (ms)
 
 static bool    jiggle_active     = false;
 static uint16_t jiggle_move_timer  = 0;  // 次の移動までのタイマー
@@ -46,6 +47,7 @@ static uint16_t jiggle_blink_timer = 0;  // LED点滅タイマー
 static bool    jiggle_led_on     = false;
 static bool    jiggle_pending    = false; // pointing_device_task_userへの移動フラグ
 static int8_t  jiggle_dir        = 1;    // 移動方向 (+1 / -1)
+static uint16_t jiggle_idle_timer = 0;   // 最後の「本物の」トラックボール入力時刻（ジグル注入前）
 
 
 // ----------------------------------------------------------------
@@ -87,7 +89,8 @@ enum click_state state;
 uint16_t click_timer;
 
 uint16_t to_clickable_time = 100;  // WAITING → CLICKABLE 移行時間 (ms)
-uint16_t to_reset_time     = 800;  // CLICKABLE → NONE タイムアウト (ms)
+uint16_t to_reset_time     = 30000; // CLICKABLE → NONE タイムアウト (ms)。最後のトラックボール操作から30秒。
+                                    // ※QMK標準オートマウスの AUTO_MOUSE_TIME と揃えること（短い方が勝つ）
 
 const uint16_t click_layer = 4;
 
@@ -240,12 +243,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         }
 
-        // スクロールモード (SCRL_MO押下中)
+        // スクロールモード (SCRL_MO押下中)。離した瞬間にクリックレイヤーを離脱する。
         case SCRL_MO:
             if (record->event.pressed) {
-                state = SCROLLING;
+                state = SCROLLING;              // 押下中はマウスレイヤーに留まる
             } else {
-                enable_click_layer();  // リリース時にクリックレイヤーを再有効化
+                // 離した瞬間に離脱。自前機構とQMK標準の両方を落とす。
+                // auto_mouse_reset_trigger(true) = layer_off + statusクリア + timer.delay=now
+                // （timer.delay=now により直後200msはトラックボールで再突入しない）
+                disable_click_layer();
+                auto_mouse_reset_trigger(true);
             }
             return false;
 
@@ -288,18 +295,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     HSV hsv;
+    int is_layer = get_highest_layer(layer_state | default_layer_state);
 
-    if (jiggle_active) {
+    // マウスレイヤー(4)を最優先。ジグラー中でもマウスレイヤーに居る間はREDを表示する。
+    // （ジグラー中でもトラックボール操作でレイヤー4に入るのは意図した動作）
+    if (is_layer == 4) {
+        hsv = (HSV){0, 255, rgblight_get_val()};  // RED
+    } else if (jiggle_active) {
         // ジグラーON: 白色で点滅
         uint8_t brightness = jiggle_led_on ? rgblight_get_val() : 0;
         hsv = (HSV){0, 0, brightness};
     } else {
-        int is_layer = get_highest_layer(layer_state | default_layer_state);
         hsv = (HSV){0, 255, rgblight_get_val()};
         if      (is_layer == 1) { hsv.h = 128; }  // CYAN
         else if (is_layer == 2) { hsv.h = 85;  }  // GREEN
         else if (is_layer == 3) { hsv.h = 43;  }  // YELLOW
-        else if (is_layer == 4) { hsv.h = 0;   }  // RED
         else if (is_layer == 5) { hsv.h = 191; }  // PURPLE
         else if (is_layer == 6) { hsv.h = 64;  }  // CHARTREUSE
         else if (is_layer == 7) { hsv.h = 224; }
@@ -353,6 +363,12 @@ bool is_clickable_mode(void) {
 // Pointing device: ステートマシンによるクリック・スクロール制御
 // ----------------------------------------------------------------
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+
+    // ジグラー: 「本物の」トラックボール入力時刻を、ジグル注入より前に記録する。
+    // （注入後の値を見ると自分の移動を入力と誤認するため、必ず注入前に判定する）
+    if (mouse_report.x != 0 || mouse_report.y != 0) {
+        jiggle_idle_timer = timer_read();
+    }
 
     // ジグラー: housekeeping_task_userからのフラグを受けてX移動を注入
     if (jiggle_pending) {
@@ -513,6 +529,14 @@ void housekeeping_task_user(void) {
 
     // カーソル移動フラグをセット
     if (timer_elapsed(jiggle_move_timer) > JIGGLE_INTERVAL) {
+        // 入力中スキップ: 直近JIGGLE_IDLE_MS以内にキー入力 or 本物のトラックボール入力があれば、
+        // 今回はジグルせずタイマーも進めない（＝入力が止まれば即座にジグル再開できる）。
+        // ・キー入力   : last_matrix_activity_elapsed()（ジグルは matrix 活動を更新しない）
+        // ・トラックボール: jiggle_idle_timer（pointing_device_task_user で注入前に記録した値）
+        if (last_matrix_activity_elapsed() < JIGGLE_IDLE_MS ||
+            timer_elapsed(jiggle_idle_timer) < JIGGLE_IDLE_MS) {
+            return;
+        }
         jiggle_move_timer = timer_read();
         jiggle_pending    = true;
     }

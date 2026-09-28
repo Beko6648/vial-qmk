@@ -24,7 +24,11 @@ typedef union {
         uint8_t cpi_idx;
         uint8_t scrl_div;
         uint8_t rotation_angle;
-        bool auto_mouse;
+        // 注意: eeconfig_update_kb() の引数は uint32_t(4バイト) のため、
+        // offset 4 以降のフィールドは EEPROM に保存されない。
+        // 永続化したいフラグは offset 3 以内（このバイト）にビットで同居させる。
+        bool auto_mouse : 1;
+        bool jis        : 1; // JIS/US配列モード (SET_JIS_MODE / SET_US_MODE で切替)
         bool scrl_inv;
         bool scrl_mode;
         report_mouse_t last_mouse;
@@ -54,6 +58,11 @@ enum cocot_keycodes {
 #define SCRL_TO QK_KB_5
 #define SCRL_IN QK_KB_6
 #define AM_TOG QK_KB_7
+
+// JIS/US配列切替・マウスジグラー (vial.json の customKeycodes 順に対応)
+#define SET_US_MODE QK_KB_8
+#define SET_JIS_MODE QK_KB_9
+#define JIGGLE_TOG  QK_KB_10
 
 
 bool encoder_update_user(uint8_t index, bool clockwise);
