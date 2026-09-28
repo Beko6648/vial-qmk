@@ -89,6 +89,32 @@ static uint16_t jiggle_move_timer = 0;  // 次の移動までのタイマー
 static int8_t   jiggle_dir        = 1;  // 移動方向 (+1=右 / -1=左)
 
 // ----------------------------------------------------------------
+// ジグラー状態の「カーソル合図」
+//   ergomini は RGB・オーディオ非搭載で、ユーザーに伝えられる出力が
+//   カーソル移動だけ。そこで JIGGLE_TOG を押した瞬間に大きく往復させ、
+//   押すだけで ON/OFF が体感できるようにする。
+//     ON  -> 右へ振って戻す（往復2回）
+//     OFF -> 左へ振って戻す（往復1回）
+//   往復なので正味の移動量はゼロ → 作業位置がずれない。
+//   送信は register_mouse() の default 節で 1 タップ = 即時送信（MK_3_SPEED 無効）。
+//   ※ ホスト側のポインタ加速を前提に、往復の「振れ幅」で ON/OFF を区別する。
+// ----------------------------------------------------------------
+#define JIGGLE_SIGNAL_TAPS 12  // 1ストロークあたりのタップ数 (12×8px≒96px)
+
+static void jiggle_signal(bool turning_on) {
+    uint16_t fwd = turning_on ? QK_MOUSE_CURSOR_RIGHT : QK_MOUSE_CURSOR_LEFT;
+    uint16_t back = turning_on ? QK_MOUSE_CURSOR_LEFT : QK_MOUSE_CURSOR_RIGHT;
+
+    // ON: 右へ大きく → 戻す → もう一度右へ → 戻す（往復2回）
+    // OFF: 左へ大きく → 戻す（往復1回）
+    uint8_t cycles = turning_on ? 2 : 1;
+    for (uint8_t c = 0; c < cycles; c++) {
+        for (uint8_t i = 0; i < JIGGLE_SIGNAL_TAPS; i++) tap_code16(fwd);
+        for (uint8_t i = 0; i < JIGGLE_SIGNAL_TAPS; i++) tap_code16(back);
+    }
+}
+
+// ----------------------------------------------------------------
 // キーマップ
 // ----------------------------------------------------------------
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -192,6 +218,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     jiggle_move_timer = timer_read();
                     jiggle_dir        = 1;
                 }
+                // 押した瞬間にカーソルで ON/OFF を合図する
+                // （ergomini は LED 非搭載のため、これが唯一のフィードバック）
+                jiggle_signal(jiggle_active);
             }
             return false;
     }
