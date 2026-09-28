@@ -6,6 +6,23 @@
         "rows": 10,
         "cols": 6
     },
+    "customKeycodes": [
+        {
+            "name": "SET_US_MODE",
+            "title": "Set US layout mode",
+            "shortName": "SET_US"
+        },
+        {
+            "name": "SET_JIS_MODE",
+            "title": "Set JIS layout mode",
+            "shortName": "SET_JIS"
+        },
+        {
+            "name": "JIGGLE_TOG",
+            "title": "Toggle mouse jiggler (prevent sleep)",
+            "shortName": "JIGGLE"
+        }
+    ],
     "layouts": {
         "labels": [
             [
