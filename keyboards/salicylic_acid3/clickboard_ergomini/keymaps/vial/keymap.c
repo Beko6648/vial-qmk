@@ -85,7 +85,12 @@ static bool jis_mode = false;
                                // 更新しないため、自分で自分をブロックしない。
 
 static bool     jiggle_active     = false;
-static uint16_t jiggle_move_timer = 0;  // 次の移動までのタイマー
+// 【型に注意】自前タイマーは uint32_t / timer_read32 / timer_elapsed32 で統一する。
+// timer_read()/timer_elapsed() は 16bit で 65535ms（65.5秒）ごとに一周するため、
+// スキップでタイマーを据え置きにすると位相がずれ、入力後に離席した際の初回発火が
+// 最大で約60秒遅れる（ジグラー本来の用途＝離席時にPCを起こす、が損なわれる）。
+// 実機例: cocot36plus では同型の欠陥が『1回目は発火するが2回目以降しない』として顕在化。
+static uint32_t jiggle_move_timer = 0;  // 次の移動までのタイマー
 static int8_t   jiggle_dir        = 1;  // 移動方向 (+1=右 / -1=左)
 
 // ----------------------------------------------------------------
@@ -215,7 +220,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 jiggle_active = !jiggle_active;
                 if (jiggle_active) {
-                    jiggle_move_timer = timer_read();
+                    jiggle_move_timer = timer_read32();
                     jiggle_dir        = 1;
                 }
                 // 押した瞬間にカーソルで ON/OFF を合図する
@@ -240,13 +245,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 void housekeeping_task_user(void) {
     if (!jiggle_active) return;
 
-    if (timer_elapsed(jiggle_move_timer) > JIGGLE_INTERVAL) {
+    if (timer_elapsed32(jiggle_move_timer) > JIGGLE_INTERVAL) {
         // 直近 JIGGLE_IDLE_MS に入力があればスキップ（離席していない）。
         // ここでタイマーを進めないので、入力が止まって JIGGLE_IDLE_MS 経過した
         // 時点で即座に移動する（最大 JIGGLE_INTERVAL 待たされない）。
         if (last_input_activity_elapsed() < JIGGLE_IDLE_MS) return;
 
-        jiggle_move_timer = timer_read();
+        jiggle_move_timer = timer_read32();
 
         // 左右交互にマウス移動キーコードを送って往復させる
         uint16_t kc = (jiggle_dir > 0) ? QK_MOUSE_CURSOR_RIGHT : QK_MOUSE_CURSOR_LEFT;
