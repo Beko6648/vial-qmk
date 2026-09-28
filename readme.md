@@ -1,5 +1,18 @@
 # Quantum Mechanical Keyboard Firmware
 
+> ## この fork について（Beko6648/vial-qmk）
+>
+> 個人用キーボードのファームウェアを **ブランチごとに管理**しています。
+> **ブランチ間でコア（QMK/Vial の土台）の世代が異なるため、ビルドはブランチごとに独立して行ってください。**
+>
+> | ブランチ | 対象キーボード | ベース |
+> |---|---|---|
+> | `vial` | cocot36plus v2（`aki27/cocot36plus`） | `aki27kbd/vial-qmk` 系（`info.json` 形式） |
+> | `ergomini` | ClickBoard ErgoMini（`salicylic_acid3/clickboard_ergomini`） | `Salicylic-acid3/vial-qmk` 系（`keyboard.json` 形式） |
+>
+> 各ブランチの変更内容・ビルド手順は、そのブランチ内の該当キーマップ（`keymaps/`）と
+> 設計メモを参照してください。
+
 [![Current Version](https://img.shields.io/github/tag/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/tags)
 [![Discord](https://img.shields.io/discord/440868230475677696.svg)](https://discord.gg/qmk)
 [![Docs Status](https://img.shields.io/badge/docs-ready-orange.svg)](https://docs.qmk.fm)
