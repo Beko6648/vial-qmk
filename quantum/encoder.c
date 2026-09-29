@@ -20,6 +20,7 @@
 #include "action.h"
 #include "keycodes.h"
 #include "wait.h"
+#include "timer.h"
 
 #ifdef SPLIT_KEYBOARD
 #    include "split_util.h"
@@ -61,6 +62,24 @@ static int8_t encoder_LUT[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 
 
 static uint8_t encoder_state[NUM_ENCODERS]  = {0};
 static int8_t  encoder_pulses[NUM_ENCODERS] = {0};
+
+// ----------------------------------------------------------------
+// 接点バウンス対策（2026-09-29 追加・オプトイン）
+// PER601（PER60シリーズ, 機械式接点）は Contact Bounce 5ms max。
+// 旧ポーリング実装にはデバウンスが無く、バウンスの戻り遷移が
+// LUT に入ると「時々逆方向」と誤判定する（詳細:
+// qmk-vial-keyboard/references/encoder-direction-instability.md）。
+//
+// ★キーマップ側の config.h で ENCODER_DEBOUNCE_MS を定義した時だけ有効。
+//   光学式など高分解能エンコーダ（遷移間隔が数ms以下）では
+//   正当な遷移を取りこぼすため、機械式接点の機種でのみ定義すること。
+//   cocot36plus: 1デテント=2遷移、上限60RPMで遷移間隔16.7ms
+//   → 6ms で正当な遷移は取りこぼさない。
+// ----------------------------------------------------------------
+#ifdef ENCODER_DEBOUNCE_MS
+static uint8_t  encoder_debounce_candidate[NUM_ENCODERS] = {0};
+static uint16_t encoder_debounce_timer[NUM_ENCODERS]     = {0};
+#endif
 
 // encoder counts
 static uint8_t thisCount;
@@ -248,6 +267,23 @@ bool encoder_read(void) {
     bool changed = false;
     for (uint8_t i = 0; i < thisCount; i++) {
         uint8_t new_status = (readPin(encoders_pad_a[i]) << 0) | (readPin(encoders_pad_b[i]) << 1);
+
+#ifdef ENCODER_DEBOUNCE_MS
+        // 接点バウンス対策: 生状態が ENCODER_DEBOUNCE_MS のあいだ安定して
+        // はじめて採用する。バウンスの戻り遷移を LUT に入れない。
+        if (new_status != encoder_debounce_candidate[i]) {
+            // 生状態が変化した → 候補を更新して計測をやり直す
+            encoder_debounce_candidate[i] = new_status;
+            encoder_debounce_timer[i]     = timer_read();
+            continue;
+        }
+        // 候補が確定値と一致 & 安定時間に達していれば採用
+        if (new_status == (encoder_state[i] & 0x3) ||
+            timer_elapsed(encoder_debounce_timer[i]) < ENCODER_DEBOUNCE_MS) {
+            continue;
+        }
+#endif
+
         if ((encoder_state[i] & 0x3) != new_status) {
             encoder_state[i] <<= 2;
             encoder_state[i] |= new_status;
